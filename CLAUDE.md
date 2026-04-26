@@ -73,7 +73,7 @@ python -m pytest --cov=src --cov=dashboard --cov-report=term-missing
 # Ingest data (dev API, fast)
 python src/ingest.py --dev
 
-# Ingest data (production, ~20 min)
+# Ingest data (production, ~30 sec — automated daily via GitHub Actions at 06:00 UTC)
 python src/ingest.py
 ```
 

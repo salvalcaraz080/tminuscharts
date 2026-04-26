@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- GitHub Actions workflow (`refresh_db.yml`) for daily automated database refresh at 06:00 UTC — runs `ingest.py`, commits updated `data/tminuscharts.db` back to the repo, triggering a Streamlit redeploy
+
+---
+
 ## [1.0.0] — 2026-04-26
 
 Initial public release. Full-featured dashboard with 7 tabs, bilingual EN/ES support, and Mission Control dark/light theme.

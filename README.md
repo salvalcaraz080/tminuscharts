@@ -44,7 +44,7 @@ streamlit run dashboard/app.py
 To refresh data from the API:
 
 ```bash
-python src/ingest.py          # Recent and upcoming launches (~15 min)
+python src/ingest.py          # Recent and upcoming launches (~30 sec)
 python src/ingest.py --dev    # Dev API, fast, limited dataset
 ```
 
@@ -82,7 +82,7 @@ tminuscharts/
 3. Select your fork, branch `main`, entry point `dashboard/app.py`
 4. Deploy
 
-No environment variables required. The SQLite database is committed to the repo.
+No environment variables required. The SQLite database is committed to the repo and refreshed automatically every day at 06:00 UTC via a GitHub Actions workflow.
 
 ---
 

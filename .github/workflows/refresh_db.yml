@@ -1,0 +1,32 @@
+name: Refresh Database
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+
+      - run: pip install requests
+
+      - name: Run ingestion
+        run: python src/ingest.py
+
+      - name: Commit updated DB
+        run: |
+          git config user.name "refresh-bot"
+          git config user.email "bot@tminuscharts"
+          git add data/tminuscharts.db
+          git diff --cached --quiet || git commit -m "data: daily refresh $(date -u +%Y-%m-%d)"
+          git push
