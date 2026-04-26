@@ -26,3 +26,9 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Stray databases
+launches.db
+
+# Power BI
+powerbi/*.pbix
