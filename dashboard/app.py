@@ -957,11 +957,11 @@ with tab4:
                 (_rfby_df["year"] >= _rf_year_from) & (_rfby_df["year"] <= _rf_year_to)
             ]
             _rf_families = sorted(_rfby_filtered["family"].unique().tolist())
-            # Families present at start of period but absent at end
-            _rf_had_start = set(_rfby_filtered[_rfby_filtered["year"] == _rf_year_from]["family"])
-            _rf_had_end   = set(_rfby_filtered[_rfby_filtered["year"] == _rf_year_to]["family"])
-            _rf_retired   = sorted(_rf_had_start - _rf_had_end)
-            st.markdown(f"▶️ **{t('rocket_families_active', n=len(_rf_families), year_from=_rf_year_from, year_to=_rf_year_to)}**")
+            # Families still flying in the end year (= "active")
+            _rf_had_end  = set(_rfby_filtered[_rfby_filtered["year"] == _rf_year_to]["family"])
+            # Any family that appeared in the period but is gone by the end year
+            _rf_retired  = sorted(set(_rf_families) - _rf_had_end)
+            st.markdown(f"▶️ **{t('rocket_families_active', n=len(_rf_had_end), year_from=_rf_year_from, year_to=_rf_year_to)}**")
             if _rf_retired:
                 st.markdown(f"❌ **{t('rocket_families_retired', n_retired=len(_rf_retired), retired=', '.join(_rf_retired))}**")
             else:

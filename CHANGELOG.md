@@ -7,8 +7,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] — 2026-04-28
+
 ### Added
 - GitHub Actions workflow (`refresh_db.yml`) for daily automated database refresh at 06:00 UTC — runs `ingest.py`, commits updated `data/tminuscharts.db` back to the repo, triggering a Streamlit redeploy
+- **Trends tab · Launches over time**: replaced granularity radio + bar chart with a unified launch density chart — solid bars for actual years, hatched overlay bars for forecast, 5-year rolling mean line, YoY% insight, and YTD pace vs same date last year
+- **Trends tab · Monthly launches**: added peak/low insight line showing the highest and lowest average months
+- Codebase cleanup: removed 7 orphaned `insights.py` functions, 64 dead `i18n.py` keys, and associated dead test classes; added 8 new test classes covering previously untested functions (143 tests total)
+
+### Fixed
+- **Insights tab · Rise and fall of rocket families**: "Disappeared" families now correctly identifies any family that appeared anywhere in the selected period but is absent in the end year (previously only checked families present in the exact start year, causing "None have disappeared" for wide ranges like 1957–2026)
+- **Insights tab · Rise and fall of rocket families**: "N active families" count now reflects families still flying in the end year, matching the chart legend (previously counted all families ever in the period, inflating the number by 1 or more)
 
 ---
 
