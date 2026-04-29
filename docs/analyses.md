@@ -3,7 +3,7 @@
 > Development of original analyses and charts you won't find anywhere else
 > Status: Ready
 > Reference: X_STRATEGY.md
-> Last updated: 2026-04-25 (Session 14)
+> Last updated: 2026-04-29 (Session 15)
 
 ---
 
@@ -36,7 +36,8 @@ Generate **new analyses or charts** that:
 
 4. ✅ **"Falcon 9 turnaround"** *(New Space tab)*
    - Days between consecutive Falcon 9 launches as a reusability metric
-   - Scatter + 20-launch rolling mean; headline: fastest turnaround in latest year
+   - Three stat callouts: all-time fastest turnaround + date, avg last 12 months, avg 2015 baseline
+   - Scatter + 20-launch rolling mean below the callouts
    - Backed by `falcon9_turnaround()` in `insights.py`
 
 5. ✅ **"The SpaceX / Starlink effect"** *(Insights tab)*

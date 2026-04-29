@@ -66,6 +66,29 @@ def split_past_upcoming(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return past, upcoming
 
 
+@st.cache_data(ttl=600)
+def load_providers() -> pd.DataFrame:
+    """Load all providers with aggregate launch counts and first launch date."""
+    if not DB_PATH.exists():
+        return pd.DataFrame()
+    query = """
+        SELECT
+            p.id, p.name, p.country, p.type,
+            p.logo_url, p.image_url,
+            COUNT(l.id)  AS launch_count,
+            MIN(l.net)   AS first_launch
+        FROM launch_service_providers p
+        LEFT JOIN launches l ON l.provider_id = p.id
+        GROUP BY p.id, p.name, p.country, p.type, p.logo_url, p.image_url
+        ORDER BY launch_count DESC, p.name
+    """
+    conn = _connect()
+    df = pd.read_sql(query, conn)
+    conn.close()
+    df["first_launch"] = pd.to_datetime(df["first_launch"], errors="coerce", utc=True)
+    return df
+
+
 def success_rate(past: pd.DataFrame) -> float:
     """Compute launch success rate from past launches."""
     if past.empty:

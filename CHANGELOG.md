@@ -9,6 +9,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-04-29
+
+### Added
+- **Upcoming tab · Launches to be confirmed**: TBD launches now grouped into weekly collapsible expanders (matching the confirmed agenda layout) instead of a flat list, reducing page length
+- **New Space tab · Ecosystem diversity**: replaced provider diversity line chart with a stacked bar chart showing active Commercial and Government providers per year
+- **New Space tab · Falcon 9 turnaround**: three `st.metric` stat callouts above the scatter chart — all-time fastest turnaround + date, average over the last 12 months, and 2015 baseline average
+- **New Space tab · New Space companies directory**: filterable card grid of all launch providers active since 2010, including those yet to launch; searchable by name, filterable by country and sector; cards show logo, country flag, sector badge, and launch count or "Yet to launch"
+- `load_providers()` cached SQL loader in `data.py` — LEFT JOINs all providers against launches to surface zero-launch companies alongside launched ones
+
+### Changed
+- **New Space tab · Annual share chart**: insight sentence moved from page headline to `st.caption` below the chart title widget, directly above the chart
+- **New Space tab · Annual share chart**: removed the standalone headline markdown above the section; insight is now shown inline with the chart
+
+### Removed
+- **New Space tab**: Top 5 Commercial and Top 5 Government horizontal bar charts and their section label
+- `top_providers_by_sector()` function from `insights.py` and its test class (no longer used)
+- Dead i18n keys: `sec_top5_sector`, `sec_diversity_concentration`, `concentration_top3`, `concentration_others`
+
+---
+
 ## [1.1.0] — 2026-04-28
 
 ### Added

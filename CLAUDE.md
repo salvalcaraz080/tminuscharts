@@ -26,7 +26,7 @@ src/
 
 dashboard/
   app.py          Streamlit UI — layout and widget calls only
-  data.py         Cached SQL loaders (load_launches, split_past_upcoming, success_rate)
+  data.py         Cached SQL loaders (load_launches, load_providers, split_past_upcoming, success_rate)
   insights.py     Pure analytics functions — no Streamlit imports
   i18n.py         Flat bilingual dict {key: {EN: ..., ES: ...}}
   theme.py        CSS injection, mc_fig(), Plotly theme

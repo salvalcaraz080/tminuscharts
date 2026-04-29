@@ -3,7 +3,7 @@
 > Redesign of existing charts to improve visual impact on X and newsletter
 > UX/UI improvements in the dashboard
 > Reference: X_STRATEGY.md
-> Last updated: 2026-04-25 (Session 14)
+> Last updated: 2026-04-29 (Session 15)
 
 ---
 
@@ -140,7 +140,7 @@ All charts go through `mc_fig(fig, height=380, *, xl="", yl="", fmt=":,", sfx=""
 **Tab 1 – 📅 Upcoming**
 - GitHub-style heatmap: 26-week window, rounded-rect SVG cells, GitHub green colorscale; "N confirmed launches in the next 6 months" title; TBD launches excluded from both heatmap and agenda
 - Mission agenda: expandable cards by week, with provider logo (`.launch-card--media`)
-- **Launches to be confirmed**: section below the agenda listing TBD launches with "Not scheduled yet" instead of a countdown
+- **Launches to be confirmed**: TBD launches grouped by week in collapsible expanders (same pattern as confirmed agenda); "Not scheduled yet" shown instead of a countdown
 
 **Tab 2 – 📈 Trends**
 - YoY delta badge on "This year" KPI cell (green ▲ / amber ▼)
@@ -159,11 +159,10 @@ All charts go through `mc_fig(fig, height=380, *, xl="", yl="", fmt=":,", sfx=""
 - **Reliability scatter**: rocket family only, no controls; X = total launches, Y = success rate %, size = total, coloured by region; min. 5 launches filter (backed by `reliability_by_category(by="family")`)
 
 **Tab 5 – New Space**
-- New Space share: 100% area (Commercial vs Government)
-- Top 5 Commercial: horizontal bar
-- Top 5 Government: horizontal bar
-- Provider diversity: line chart by sector
-- **Falcon 9 turnaround**: scatter of days between consecutive F9 launches + 20-launch rolling mean; headline shows fastest turnaround in latest year (backed by `falcon9_turnaround`)
+- **Annual share**: 100% area (Commercial vs Government); insight sentence rendered as `st.caption` below the chart title widget, before the chart
+- **Ecosystem diversity**: stacked bar of active providers per year split Commercial vs Government (backed by `provider_diversity_by_year`)
+- **Falcon 9 turnaround**: three `st.metric` stat callouts (all-time fastest + date, avg last 12 months vs 2015 baseline) above the scatter + 20-launch rolling mean chart (backed by `falcon9_turnaround`)
+- **New Space companies directory**: filterable card grid (name search + country multiselect + sector multiselect); loaded via `load_providers()` in `data.py` which LEFT JOINs all providers against launches to surface zero-launch companies; filtered to providers whose first launch ≥ 2010 (`NEW_SPACE_YEAR`) plus any yet-to-launch; 3-column HTML card grid matching dashboard visual language (logo, name, flag, sector badge, launch count or "Yet to launch")
 
 **Tab 6 – Missions**
 - Orbit distribution: donut

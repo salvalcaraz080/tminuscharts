@@ -185,27 +185,6 @@ def newspace_growth(past: pd.DataFrame) -> dict:
     }
 
 
-def top_providers_by_sector(past: pd.DataFrame, n: int = 5):
-    """Return (top_commercial, top_government) provider DataFrames."""
-    if past.empty:
-        return pd.DataFrame(), pd.DataFrame()
-
-    df = past.copy()
-    df["sector"] = df["provider_type"].apply(_classify_sector)
-
-    def _top(subset):
-        return (
-            subset.dropna(subset=["provider_name"])
-            .groupby("provider_name")
-            .size()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-            .head(n)
-        )
-
-    return _top(df[df["sector"] == "Commercial"]), _top(df[df["sector"] == "Government"])
-
-
 def provider_diversity_by_year(past: pd.DataFrame) -> pd.DataFrame:
     """Distinct active providers per year, split by sector."""
     if past.empty:

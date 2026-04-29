@@ -15,7 +15,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from data import load_launches, split_past_upcoming, success_rate
+from data import load_launches, load_providers, split_past_upcoming, success_rate
 from i18n import make_t
 import insights
 from theme import THEMES, build_css, chart_palette, geo_layout, heatmap_cell_color, heatmap_cell_path, heatmap_colorscale, orbit_color_map, orbit_node_colors, plotly_layout, region_color_map, title_color, trace_label_color
@@ -775,16 +775,22 @@ with tab2:
         if not f_upcoming_tbd.empty:
             st.markdown(f'<div class="section-label">{t("sec_tbd")}</div>', unsafe_allow_html=True)
             _right_tbd = f'<div class="countdown-when">{t("not_scheduled")}</div>'
-            for _, launch in f_upcoming_tbd.iterrows():
-                st.markdown(
-                    _render_launch_card(
-                        launch,
-                        right_html=_right_tbd,
-                        from_label=t("from"),
-                        to_label=t("to"),
-                    ),
-                    unsafe_allow_html=True,
-                )
+            for i, week in enumerate(insights.upcoming_by_week(f_upcoming_tbd)):
+                title_str = t("week_of",
+                              start=f"{week['start'].day} {week['start'].strftime('%b')}",
+                              end=f"{week['end'].day} {week['end'].strftime('%b')}")
+                cl = t("launch_count_one") if week["count"] == 1 else t("launches_count", n=week["count"])
+                with st.expander(f"{title_str} · {cl}", expanded=(i == 0)):
+                    for _, launch in week["launches"].iterrows():
+                        st.markdown(
+                            _render_launch_card(
+                                launch,
+                                right_html=_right_tbd,
+                                from_label=t("from"),
+                                to_label=t("to"),
+                            ),
+                            unsafe_allow_html=True,
+                        )
 
 # ── MAP ───────────────────────────────────────────────────────────────────────
 with tab3:
@@ -1028,20 +1034,21 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
 # ── NEW SPACE ─────────────────────────────────────────────────────────────────
+_COUNTRY_FLAGS = {
+    "USA":"🇺🇸","CHN":"🇨🇳","RUS":"🇷🇺","IND":"🇮🇳","JPN":"🇯🇵","FRA":"🇫🇷","DEU":"🇩🇪",
+    "GBR":"🇬🇧","ITA":"🇮🇹","ESP":"🇪🇸","LUX":"🇱🇺","NZL":"🇳🇿","KOR":"🇰🇷","IRN":"🇮🇷",
+    "PRK":"🇰🇵","ISR":"🇮🇱","AUS":"🇦🇺","CAN":"🇨🇦","BRA":"🇧🇷","UKR":"🇺🇦","UAE":"🇦🇪",
+    "SGP":"🇸🇬","GUF":"🇬🇫","KAZ":"🇰🇿","PAK":"🇵🇰","ARG":"🇦🇷","NOR":"🇳🇴","SWE":"🇸🇪",
+}
+
 with tab5:
     if f_past.empty:
         st.info(t("no_data"))
     else:
         _np = chart_palette(_ui_theme())
         growth = insights.newspace_growth(f_past)
-        if growth["first_year"] and growth["first_year"] != growth["last_year"]:
-            st.markdown(f"**{t('newspace_headline_evolution', **growth)}**")
-        else:
-            sector_now = insights.sector_by_year(f_past)
-            if not sector_now.empty:
-                last = sector_now.iloc[-1]
-                st.markdown(f"**{t('newspace_headline_single', year=int(last['year']), pct=last['commercial_pct'])}**")
 
+        # ── ANNUAL SHARE ──────────────────────────────────────────────────────
         st.markdown(f'<div class="section-label">{t("sec_newspace_share")}</div>', unsafe_allow_html=True)
         sector_df = insights.sector_by_year(f_past)
         if not sector_df.empty:
@@ -1049,6 +1056,11 @@ with tab5:
                                       var_name="sector_en", value_name="count")
             long_df["sector"] = long_df["sector_en"].map({"Commercial":t("commercial"),"Government":t("government")})
             _ct = chart_title_widget("newspace_share", t)
+            if growth["first_year"] and growth["first_year"] != growth["last_year"]:
+                st.caption(t("newspace_headline_evolution", **growth))
+            else:
+                _last = sector_df.iloc[-1]
+                st.caption(t("newspace_headline_single", year=int(_last["year"]), pct=_last["commercial_pct"]))
             fig = px.area(long_df, x="year", y="count", color="sector", groupnorm="percent",
                           color_discrete_map={t("commercial"):_np["success"],t("government"):_np["bar_secondary"]},
                           labels={"year":t("year_col"),"count":"%","sector":""})
@@ -1057,43 +1069,22 @@ with tab5:
             fig.update_layout(yaxis_title=t("pct_launches_axis"))
             st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown(f'<div class="section-label">{t("sec_top5_sector")}</div>', unsafe_allow_html=True)
-        top_com, top_gov = insights.top_providers_by_sector(f_past, n=5)
-        st.markdown(f"**🌱 {t('commercial')}**")
-        if not top_com.empty:
-            _ct = chart_title_widget("top_commercial", t)
-            fig = px.bar(top_com, x="count", y="provider_name", orientation="h",
-                         color_discrete_sequence=[_np["success"]],
-                         labels={"count":t("launches_col"),"provider_name":""})
-            apply_title(fig, _ct)
-            mc_fig(fig, height=280, xl=t("launches_col"), yl=t("provider"))
-            fig.update_layout(yaxis={"categoryorder":"total ascending"})
-            fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown(f"**🏛️ {t('government')}**")
-        if not top_gov.empty:
-            _ct = chart_title_widget("top_government", t)
-            fig = px.bar(top_gov, x="count", y="provider_name", orientation="h",
-                         color_discrete_sequence=[_np["bar_secondary"]],
-                         labels={"count":t("launches_col"),"provider_name":""})
-            apply_title(fig, _ct)
-            mc_fig(fig, height=280, xl=t("launches_col"), yl=t("provider"))
-            fig.update_layout(yaxis={"categoryorder":"total ascending"})
-            fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
-
+        # ── ECOSYSTEM DIVERSITY ───────────────────────────────────────────────
         st.markdown(f'<div class="section-label">{t("sec_diversity")}</div>', unsafe_allow_html=True)
         diversity = insights.provider_diversity_by_year(f_past)
         if not diversity.empty:
             diversity["sector_label"] = diversity["sector"].map({"Commercial":t("commercial"),"Government":t("government")})
-            _ct = chart_title_widget("diversity", t)
-            fig = px.line(diversity, x="year", y="unique_providers", color="sector_label", markers=True,
-                          color_discrete_map={t("commercial"):"#22c55e",t("government"):"#4a9eff"},
-                          labels={"year":t("year_col"),"unique_providers":t("unique_providers"),"sector_label":""})
+            _ct = chart_title_widget("diversity_providers", t)
+            st.caption(t("sec_diversity_providers"))
+            fig = px.bar(diversity, x="year", y="unique_providers", color="sector_label", barmode="stack",
+                         color_discrete_map={t("commercial"):_np["success"],t("government"):_np["bar_secondary"]},
+                         labels={"year":t("year_col"),"unique_providers":t("unique_providers"),"sector_label":""})
             apply_title(fig, _ct)
-            mc_fig(fig, height=340, xl=t("year_col"), yl=t("unique_providers"))
+            mc_fig(fig, height=300, xl=t("year_col"), yl=t("unique_providers"))
+            fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
 
+        # ── REUSABILITY REVOLUTION ────────────────────────────────────────────
         st.divider()
         st.markdown(f'<div class="section-label">🔄 {t("sec_turnaround")}</div>', unsafe_allow_html=True)
         _turn_df = insights.falcon9_turnaround(f_past)
@@ -1103,6 +1094,26 @@ with tab5:
             _min_days = int(_turn_latest["days"].min()) if not _turn_latest.empty else int(_turn_df["days"].min())
             _total_f9 = len(_turn_df) + 1
             st.markdown(f"**{t('turnaround_headline', year=_turn_latest_year, min_days=_min_days, total=_total_f9)}**")
+
+            _fastest_days = int(_turn_df["days"].min())
+            _fastest_date = _turn_df.loc[_turn_df["days"].idxmin(), "net"].strftime("%b %Y")
+            _12m_ago = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=365)
+            _recent_t = _turn_df[_turn_df["net"] >= _12m_ago]
+            _recent_avg = round(float(_recent_t["days"].mean()), 1) if not _recent_t.empty else None
+            _base_t = _turn_df[_turn_df["net"].dt.year == 2015]
+            _base_avg = round(float(_base_t["days"].mean()), 1) if not _base_t.empty else None
+
+            _tcol1, _tcol2, _tcol3 = st.columns(3)
+            with _tcol1:
+                st.metric(t("turnaround_fastest"), f"{_fastest_days} {t('days_suffix')}", delta=_fastest_date, delta_color="off")
+            with _tcol2:
+                if _recent_avg is not None:
+                    _delta_vs_base = f"vs {_base_avg}{t('days_suffix')} in 2015" if _base_avg else None
+                    st.metric(t("turnaround_recent_avg"), f"{_recent_avg} {t('days_suffix')}", delta=_delta_vs_base, delta_color="inverse")
+            with _tcol3:
+                if _base_avg is not None:
+                    st.metric(t("turnaround_baseline"), f"{_base_avg} {t('days_suffix')}")
+
             _ip = chart_palette(_ui_theme())
             _ct = chart_title_widget("sec_turnaround", t)
             fig = go.Figure()
@@ -1125,6 +1136,74 @@ with tab5:
             mc_fig(fig, height=360, yl=t("days_label"))
             fig.update_layout(yaxis_title=t("days_label"), xaxis_title="")
             st.plotly_chart(fig, use_container_width=True)
+
+        # ── COMPANIES DIRECTORY ───────────────────────────────────────────────
+        st.divider()
+        st.markdown(f'<div class="section-label">{t("sec_companies")}</div>', unsafe_allow_html=True)
+        _providers_df = load_providers()
+        if not _providers_df.empty:
+            _providers_df = _providers_df[
+                (_providers_df["launch_count"] == 0) |
+                (_providers_df["first_launch"].dt.year >= NEW_SPACE_YEAR)
+            ]
+            _cs, _cc, _ct_col = st.columns([3, 2, 2])
+            with _cs:
+                _comp_search = st.text_input(t("companies_search_label"), placeholder=t("companies_search_ph"),
+                                             key="comp_search")
+            with _cc:
+                _countries_list = sorted(_providers_df["country"].dropna().unique())
+                _sel_countries = st.multiselect(t("filter_country"), _countries_list, key="comp_country")
+            with _ct_col:
+                _sel_type = st.multiselect(
+                    t("sector"), ["Commercial", "Government"], key="comp_type",
+                    format_func=lambda x: t("commercial") if x == "Commercial" else t("government"),
+                )
+            _pf = _providers_df.copy()
+            if _comp_search:
+                _pf = _pf[_pf["name"].str.contains(_comp_search, case=False, na=False)]
+            if _sel_countries:
+                _pf = _pf[_pf["country"].isin(_sel_countries)]
+            if _sel_type:
+                _pf = _pf[_pf["type"].isin(_sel_type)]
+
+            st.caption(t("companies_count", n=len(_pf)))
+
+            _th_c = THEMES.get(_ui_theme(), THEMES["dark"])
+            _GRID = 3
+            for _ri in range(0, len(_pf), _GRID):
+                _slice = _pf.iloc[_ri:_ri + _GRID]
+                _gcols = st.columns(_GRID)
+                for _ci, (_, _pr) in enumerate(_slice.iterrows()):
+                    with _gcols[_ci]:
+                        _flag = _COUNTRY_FLAGS.get(str(_pr.get("country") or ""), "🌐")
+                        _sbadge = t("commercial") if str(_pr.get("type","")).lower() == "commercial" else t("government")
+                        if _pr["launch_count"] == 0:
+                            _lstr = t("companies_yet_to_launch")
+                        else:
+                            _fyr = int(pd.to_datetime(_pr["first_launch"]).year) if pd.notna(_pr["first_launch"]) else "?"
+                            _lstr = f"{int(_pr['launch_count'])} {t('launches_col')} · {t('companies_since')} {_fyr}"
+                        _logo = str(_pr.get("logo_url") or _pr.get("image_url") or "")
+                        _img_html = (
+                            f'<img src="{escape(_logo)}" style="width:30px;height:30px;'
+                            f'object-fit:contain;border-radius:2px;background:rgba(255,255,255,0.06);padding:3px;" />'
+                            if _logo else ""
+                        )
+                        st.markdown(
+                            f'<div style="background:{_th_c["lc"]};border-left:3px solid {_th_c["ldr"]};'
+                            f'border-radius:2px;padding:12px 14px;margin-bottom:10px;min-height:88px;">'
+                            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+                            f'{_img_html}'
+                            f'<span style="font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:600;'
+                            f'color:{_th_c["tf"]};line-height:1.2;">{escape(str(_pr["name"]))}</span>'
+                            f'</div>'
+                            f'<div style="font-family:Share Tech Mono,monospace;font-size:12px;'
+                            f'color:{_th_c["tx3"]};line-height:1.8;">'
+                            f'{_flag} {escape(str(_pr.get("country") or "—"))}&nbsp;·&nbsp;'
+                            f'<span style="color:{_th_c["tx2"]};">{escape(_sbadge)}</span><br>'
+                            f'{escape(_lstr)}'
+                            f'</div></div>',
+                            unsafe_allow_html=True,
+                        )
 
 # ── MISSIONS ──────────────────────────────────────────────────────────────────
 with tab6:

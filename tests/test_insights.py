@@ -23,7 +23,6 @@ from insights import (
     starlink_total_share,
     success_rate_by_year,
     top_pads,
-    top_providers_by_sector,
     upcoming_by_week,
 )
 
@@ -163,26 +162,6 @@ class TestNewspaceGrowth:
         result = newspace_growth(sample_past)
         assert result["first_year"] == 2022
         assert result["last_year"] == 2023
-
-
-class TestTopProvidersBySector:
-    def test_empty_returns_two_empty_dataframes(self):
-        commercial, government = top_providers_by_sector(pd.DataFrame())
-        assert commercial.empty
-        assert government.empty
-
-    def test_spacex_is_top_commercial(self, sample_past):
-        commercial, _ = top_providers_by_sector(sample_past)
-        assert commercial.iloc[0]["provider_name"] == "SpaceX"
-
-    def test_isro_is_top_government(self, sample_past):
-        _, government = top_providers_by_sector(sample_past)
-        assert government.iloc[0]["provider_name"] == "ISRO"
-
-    def test_n_parameter_limits_results(self, sample_past):
-        commercial, government = top_providers_by_sector(sample_past, n=1)
-        assert len(commercial) <= 1
-        assert len(government) <= 1
 
 
 class TestProviderDiversityByYear:
