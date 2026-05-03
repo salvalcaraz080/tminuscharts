@@ -18,7 +18,7 @@ import streamlit as st
 from data import load_launches, load_providers, split_past_upcoming, success_rate
 from i18n import make_t
 import insights
-from theme import THEMES, build_css, chart_palette, geo_layout, heatmap_cell_color, heatmap_cell_path, heatmap_colorscale, orbit_color_map, orbit_node_colors, plotly_layout, region_color_map, title_color, trace_label_color
+from theme import THEMES, build_css, chart_palette, geo_layout, heatmap_cell_color, heatmap_cell_path, heatmap_colorscale, orbit_node_colors, plotly_layout, region_color_map, title_color, trace_label_color
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -1210,53 +1210,88 @@ with tab6:
     if f_past.empty:
         st.info(t("no_data"))
     else:
-        orbit_labels = {
-            "LEO":t("orbit_leo"),"MEO":t("orbit_meo"),"GEO / GTO":t("orbit_geo"),
-            "HEO":t("orbit_heo"),"Beyond Earth":t("orbit_beyond"),
-            "Suborbital":t("orbit_suborbital"),"Other":t("orbit_other"),"Unknown":t("orbit_unknown"),
-        }
-        orbit_colors = orbit_color_map(_ui_theme(), t)
-        leo_pct, leo_year = insights.leo_dominance_headline(f_past)
-        st.markdown(f"**{t('leo_headline', year=leo_year, pct=leo_pct)}**")
+        _th = _ui_theme()
+        _pal = chart_palette(_th)
+        _area = _pal["area"]
 
-        st.markdown(f'<div class="section-label">{t("sec_orbit_dist")}</div>', unsafe_allow_html=True)
-        od = insights.orbit_distribution(f_past)
-        if not od.empty:
-            od["label"] = od["orbit_category"].map(orbit_labels)
-            _ct = chart_title_widget("orbit_distribution", t)
-            fig = px.pie(od, values="count", names="label", hole=0.52,
-                         color="label", color_discrete_map=orbit_colors)
+        purpose_labels = {
+            "Connectivity":          t("purpose_connectivity"),
+            "Government / Military": t("purpose_gov_mil"),
+            "Earth Observation":     t("purpose_earth_obs"),
+            "Science & Exploration": t("purpose_science"),
+            "Crewed":                t("purpose_crewed"),
+            "Resupply":              t("purpose_resupply"),
+            "Other":                 t("purpose_other"),
+        }
+        purpose_colors = {
+            t("purpose_connectivity"): _area[0],
+            t("purpose_gov_mil"):      _area[1],
+            t("purpose_earth_obs"):    _area[2],
+            t("purpose_science"):      _area[3],
+            t("purpose_crewed"):       _area[4],
+            t("purpose_resupply"):     _area[5],
+            t("purpose_other"):        _pal["bar_muted"],
+        }
+
+        # ── What is space for? ─────────────────────────────────────────────
+        st.markdown(f'<div class="section-label">{t("sec_mission_purpose")}</div>', unsafe_allow_html=True)
+        purpose_df = insights.mission_purpose_by_year(f_past)
+        if not purpose_df.empty:
+            purpose_df["label"] = purpose_df["purpose"].map(purpose_labels)
+            _ct = chart_title_widget("mission_purpose", t)
+            fig = px.area(
+                purpose_df, x="year", y="count", color="label",
+                color_discrete_map=purpose_colors,
+                labels={"year": t("year_col"), "count": t("launches_col"), "label": ""},
+            )
             apply_title(fig, _ct)
-            mc_fig(fig, height=360, yl=t("launches_col"))
-            fig.update_traces(textfont_color=trace_label_color(_ui_theme()))
+            mc_fig(fig, height=400, xl=t("year_col"), yl=t("launches_col"))
             st.plotly_chart(fig, use_container_width=True)
-        st.markdown(f'<div class="section-label">{t("sec_orbit_evo")}</div>', unsafe_allow_html=True)
-        oe = insights.orbit_evolution(f_past)
-        if not oe.empty:
-            oe["label"] = oe["orbit_category"].map(orbit_labels)
-            _ct = chart_title_widget("orbit_evolution", t)
-            fig = px.area(oe, x="year", y="count", color="label",
-                          color_discrete_map=orbit_colors,
-                          labels={"year":t("year_col"),"count":t("launches_col"),"label":t("orbit_category")})
+
+        # ── Megaconstellation effect ────────────────────────────────────────
+        st.markdown(f'<div class="section-label">{t("sec_megaconstellation")}</div>', unsafe_allow_html=True)
+        mega_total, comms_total = insights.megaconstellation_headline(f_past)
+        if comms_total > 0:
+            mega_pct = round(mega_total / comms_total * 100, 1)
+            st.markdown(f"**{t('megaconstellation_headline_txt', mega=mega_total, comms=comms_total, pct=mega_pct)}**")
+        mega_df = insights.megaconstellation_by_year(f_past)
+        if not mega_df.empty:
+            constellation_labels = {
+                "Starlink":      t("mega_starlink"),
+                "OneWeb":        t("mega_oneweb"),
+                "Amazon Kuiper": t("mega_kuiper"),
+                "Other Comms":   t("mega_other"),
+            }
+            constellation_colors = {
+                t("mega_starlink"): _pal["starlink_cyan"],
+                t("mega_oneweb"):   _area[2],
+                t("mega_kuiper"):   _area[3],
+                t("mega_other"):    _pal["bar_muted"],
+            }
+            mega_df["label"] = mega_df["constellation"].map(constellation_labels)
+            _ct = chart_title_widget("megaconstellation", t)
+            fig = px.bar(
+                mega_df, x="year", y="count", color="label",
+                color_discrete_map=constellation_colors,
+                labels={"year": t("year_col"), "count": t("launches_col"), "label": ""},
+                barmode="stack",
+            )
             apply_title(fig, _ct)
             mc_fig(fig, height=360, xl=t("year_col"), yl=t("launches_col"))
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown(f'<div class="section-label">{t("sec_mission_types")}</div>', unsafe_allow_html=True)
-        mt = insights.mission_type_distribution(f_past, n=10)
-        if not mt.empty:
-            _ct = chart_title_widget("mission_types", t)
-            fig = px.bar(mt, x="count", y="mission_type", orientation="h",
-                         color_discrete_sequence=[chart_palette(_ui_theme())["purple"]],
-                         labels={"count":t("launches_col"),"mission_type":t("mission_type_col")})
-            apply_title(fig, _ct)
-            mc_fig(fig, height=380, xl=t("launches_col"), yl=t("mission_type_col"))
-            fig.update_layout(yaxis={"categoryorder":"total ascending"})
             fig.update_traces(marker_line_width=0)
             st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown(f'<div class="section-label">{t("sec_deep_space")}</div>', unsafe_allow_html=True)
+        # ── Exploration milestones ──────────────────────────────────────────
+        st.markdown(f'<div class="section-label">{t("sec_exploration")}</div>', unsafe_allow_html=True)
         deep = insights.deep_space_missions(f_past)
+        if not deep.empty:
+            _deep_types = sorted(deep["mission_type"].dropna().unique().tolist())
+            _sel_types = st.multiselect(
+                t("mission_type"), _deep_types, key="mis_exp_types",
+                help=t("filters_multiselect_help"),
+            )
+            if _sel_types:
+                deep = deep[deep["mission_type"].isin(_sel_types)]
         if deep.empty:
             st.info(t("deep_space_none"))
         else:

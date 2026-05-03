@@ -3,7 +3,7 @@
 > Development of original analyses and charts you won't find anywhere else
 > Status: Ready
 > Reference: X_STRATEGY.md
-> Last updated: 2026-04-29 (Session 15)
+> Last updated: 2026-05-03 (Session 16)
 
 ---
 
@@ -54,11 +54,11 @@ Generate **new analyses or charts** that:
    - Chart: 100% area + trend line
    - Status: NewSpace tab has the base chart; projection not yet added
 
-7. **"Satellite constellation explosion"**
-   - Starlink vs OneWeb vs Amazon vs others, satellites/month
-   - Chart: stacked area
-   - Requires satellite payload classification from mission names — not trivial
-   - Status: not started; depends on data quality in mission_name field
+7. ✅ **"The megaconstellation effect"** *(Missions tab)*
+   - Starlink vs OneWeb vs Amazon Kuiper vs Other Comms, launches per year
+   - Chart: stacked bar; headline stat (% of comms launches belonging to megaconstellations)
+   - Classification by keyword in `launch_name` (no satellite manifest parsing needed)
+   - Backed by `megaconstellation_by_year()` and `megaconstellation_headline()`
 
 ---
 

@@ -9,6 +9,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-05-03
+
+### Added
+- **Missions tab · What is space for?**: stacked area chart classifying all launches into 7 purpose categories (Connectivity, Government/Military, Earth Observation, Science & Exploration, Crewed, Resupply, Other); backed by `mission_purpose_by_year()` and `_PURPOSE_MAP` in `insights.py`
+- **Missions tab · The megaconstellation effect**: stacked bar (Starlink / OneWeb / Amazon Kuiper / Other Comms) with headline stat showing what % of communications launches belong to megaconstellations; backed by `megaconstellation_by_year()` and `megaconstellation_headline()`
+- **Missions tab · Exploration milestones**: renamed and repositioned deep space mission cards section; added mission_type multiselect filter (options populated dynamically) to drill into specific mission types
+
+### Changed
+- **Missions tab**: full redesign — replaced orbit distribution donut, orbit evolution area chart, and mission types bar chart with the three new sections above
+
+### Removed
+- `orbit_distribution()`, `orbit_evolution()`, `mission_type_distribution()`, `leo_dominance_headline()` from `insights.py` (Missions tab only, no other consumers)
+- Dead i18n keys: `sec_orbit_dist`, `sec_orbit_evo`, `sec_mission_types`, `sec_deep_space`, `orbit_category`, `orbit_leo`, `orbit_meo`, `orbit_geo`, `orbit_heo`, `orbit_beyond`, `orbit_suborbital`, `orbit_other`, `orbit_unknown`
+- `orbit_color_map` removed from `app.py` imports (function kept in `theme.py` — still used by Map tab via `orbit_node_colors`)
+
+---
+
 ## [1.2.0] — 2026-04-29
 
 ### Added

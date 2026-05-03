@@ -6,13 +6,12 @@ from insights import (
     falcon9_turnaround,
     launches_by_category,
     launches_by_year_with_forecast,
-    leo_dominance_headline,
-    mission_type_distribution,
+    megaconstellation_by_year,
+    megaconstellation_headline,
+    mission_purpose_by_year,
     monthly_seasonality,
     newspace_growth,
     normalize_orbit,
-    orbit_distribution,
-    orbit_evolution,
     overview_headline_stats,
     provider_diversity_by_year,
     reliability_by_category,
@@ -176,7 +175,7 @@ class TestProviderDiversityByYear:
 
 
 # ---------------------------------------------------------------------------
-# 7. Missions and orbits
+# 7. Missions
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("orbit,expected", [
@@ -207,48 +206,65 @@ def test_normalize_orbit(orbit, expected):
     assert normalize_orbit(orbit) == expected
 
 
-class TestOrbitDistribution:
+class TestMissionPurposeByYear:
     def test_empty_returns_expected_columns(self):
-        result = orbit_distribution(pd.DataFrame())
-        assert list(result.columns) == ["orbit_category", "count", "pct"]
+        result = mission_purpose_by_year(pd.DataFrame())
+        assert list(result.columns) == ["year", "purpose", "count"]
 
-    def test_pct_sums_to_100(self, sample_past):
-        result = orbit_distribution(sample_past)
-        assert abs(result["pct"].sum() - 100.0) < 0.1
+    def test_maps_communications_to_connectivity(self, sample_past):
+        result = mission_purpose_by_year(sample_past)
+        row = result[result["purpose"] == "Connectivity"]
+        assert not row.empty
 
-    def test_leo_is_dominant(self, sample_past):
-        result = orbit_distribution(sample_past)
-        top_category = result.iloc[0]["orbit_category"]
-        assert top_category == "LEO"
+    def test_maps_planetary_science_to_science(self, sample_past):
+        result = mission_purpose_by_year(sample_past)
+        row = result[result["purpose"] == "Science & Exploration"]
+        assert not row.empty
+
+    def test_unknown_type_falls_into_other(self, sample_past):
+        # "Technology" in sample_past is not in _PURPOSE_MAP → Other
+        result = mission_purpose_by_year(sample_past)
+        other = result[result["purpose"] == "Other"]
+        assert not other.empty
+
+    def test_total_count_matches_input(self, sample_past):
+        result = mission_purpose_by_year(sample_past)
+        assert result["count"].sum() == len(sample_past)
 
 
-class TestOrbitEvolution:
+class TestMegaconstellationByYear:
     def test_empty_returns_expected_columns(self):
-        result = orbit_evolution(pd.DataFrame())
-        assert list(result.columns) == ["year", "orbit_category", "count"]
+        result = megaconstellation_by_year(pd.DataFrame())
+        assert list(result.columns) == ["year", "constellation", "count"]
 
-    def test_has_rows_per_year_and_category(self, sample_past):
-        result = orbit_evolution(sample_past)
-        assert len(result) > 0
-        assert set(result["year"]).issubset({2022, 2023})
+    def test_detects_starlink(self, sample_past):
+        result = megaconstellation_by_year(sample_past)
+        starlink = result[result["constellation"] == "Starlink"]
+        assert starlink["count"].sum() == 3  # rows 0, 3, 6
+
+    def test_other_comms_catches_remainder(self, sample_past):
+        result = megaconstellation_by_year(sample_past)
+        other = result[result["constellation"] == "Other Comms"]
+        assert other["count"].sum() == 1  # SES-18 & SES-19
+
+    def test_only_comms_launches_included(self, sample_past):
+        result = megaconstellation_by_year(sample_past)
+        # Technology and Planetary Science rows are excluded
+        assert result["count"].sum() == 4  # 4 Communications rows
 
 
-class TestMissionTypeDistribution:
-    def test_empty_returns_expected_columns(self):
-        result = mission_type_distribution(pd.DataFrame())
-        assert list(result.columns) == ["mission_type", "count"]
+class TestMegaconstellationHeadline:
+    def test_empty_returns_zeros(self):
+        assert megaconstellation_headline(pd.DataFrame()) == (0, 0)
 
-    def test_sorted_descending(self, sample_past):
-        result = mission_type_distribution(sample_past)
-        assert list(result["count"]) == sorted(result["count"], reverse=True)
+    def test_counts_mega_and_total_comms(self, sample_past):
+        mega, total = megaconstellation_headline(sample_past)
+        assert mega == 3   # Starlink x3
+        assert total == 4  # all Communications rows
 
-    def test_n_limits_results(self, sample_past):
-        result = mission_type_distribution(sample_past, n=2)
-        assert len(result) <= 2
-
-    def test_communications_is_top(self, sample_past):
-        result = mission_type_distribution(sample_past)
-        assert result.iloc[0]["mission_type"] == "Communications"
+    def test_mega_le_total(self, sample_past):
+        mega, total = megaconstellation_headline(sample_past)
+        assert mega <= total
 
 
 class TestDeepSpaceMissions:
@@ -284,21 +300,6 @@ class TestDeepSpaceMissions:
             "rocket_name": ["Falcon 9", "Falcon 9"],
         })
         assert deep_space_missions(df).empty
-
-
-class TestLeoDominanceHeadline:
-    def test_empty_returns_zeros(self):
-        pct, year = leo_dominance_headline(pd.DataFrame())
-        assert pct == 0.0
-        assert year == 0
-
-    def test_returns_latest_year(self, sample_past):
-        _, year = leo_dominance_headline(sample_past)
-        assert year == 2023
-
-    def test_pct_between_0_and_100(self, sample_past):
-        pct, _ = leo_dominance_headline(sample_past)
-        assert 0.0 <= pct <= 100.0
 
 
 # ---------------------------------------------------------------------------

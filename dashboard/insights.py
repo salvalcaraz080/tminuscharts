@@ -200,13 +200,40 @@ def provider_diversity_by_year(past: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# 7. Missions and orbits
+# 7. Missions
 # ---------------------------------------------------------------------------
 DEEP_SPACE_KEYWORDS = (
     "lunar", "moon", "mars", "heliocentric", "interplanetary",
     "asteroid", "jupiter", "saturn", "venus", "mercury", "comet",
     "l1", "l2", "trans-lunar",
 )
+
+_PURPOSE_MAP: dict[str, str] = {
+    "Communications":            "Connectivity",
+    "Earth Science":             "Earth Observation",
+    "Astrophysics":              "Science & Exploration",
+    "Planetary Science":         "Science & Exploration",
+    "Heliophysics":              "Science & Exploration",
+    "Lunar Exploration":         "Science & Exploration",
+    "Robotic Exploration":       "Science & Exploration",
+    "Materials Science":         "Science & Exploration",
+    "Biology":                   "Science & Exploration",
+    "Government/Top Secret":     "Government / Military",
+    "Navigation":                "Government / Military",
+    "Test Target":               "Government / Military",
+    "Space Situational Awareness": "Government / Military",
+    "Human Exploration":         "Crewed",
+    "Tourism":                   "Crewed",
+    "Resupply":                  "Resupply",
+}
+
+PURPOSE_ORDER = [
+    "Connectivity", "Government / Military", "Earth Observation",
+    "Science & Exploration", "Crewed", "Resupply", "Other",
+]
+
+_CONSTELLATION_KEYWORDS = ("starlink", "oneweb", "kuiper")
+_CONSTELLATION_LABELS   = ("Starlink", "OneWeb", "Amazon Kuiper")
 
 
 def normalize_orbit(orbit) -> str:
@@ -232,49 +259,50 @@ def normalize_orbit(orbit) -> str:
     return "Other"
 
 
-def orbit_distribution(past: pd.DataFrame) -> pd.DataFrame:
-    """Total launches per orbit category."""
+def mission_purpose_by_year(past: pd.DataFrame) -> pd.DataFrame:
+    """Yearly launches per mission purpose category."""
     if past.empty:
-        return pd.DataFrame(columns=["orbit_category", "count", "pct"])
+        return pd.DataFrame(columns=["year", "purpose", "count"])
     df = past.copy()
-    df["orbit_category"] = df["mission_orbit"].apply(normalize_orbit)
-    total = len(df)
-    out = (
-        df.groupby("orbit_category")
-        .size()
-        .reset_index(name="count")
-        .sort_values("count", ascending=False)
-    )
-    out["pct"] = (out["count"] / total * 100).round(1)
-    return out
-
-
-def orbit_evolution(past: pd.DataFrame) -> pd.DataFrame:
-    """Yearly launches per orbit category."""
-    if past.empty:
-        return pd.DataFrame(columns=["year", "orbit_category", "count"])
-    df = past.copy()
-    df["orbit_category"] = df["mission_orbit"].apply(normalize_orbit)
+    df["purpose"] = df["mission_type"].map(_PURPOSE_MAP).fillna("Other")
     return (
-        df.groupby(["year", "orbit_category"])
+        df.groupby(["year", "purpose"])
         .size()
         .reset_index(name="count")
-        .sort_values(["year", "orbit_category"])
+        .sort_values(["year", "purpose"])
     )
 
 
-def mission_type_distribution(past: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """Top N mission types by launch count."""
+def megaconstellation_by_year(past: pd.DataFrame) -> pd.DataFrame:
+    """Annual launches per major satellite constellation vs other comms."""
     if past.empty:
-        return pd.DataFrame(columns=["mission_type", "count"])
+        return pd.DataFrame(columns=["year", "constellation", "count"])
+    comms = past[past["mission_type"].fillna("") == "Communications"].copy()
+    name_lower = comms["launch_name"].fillna("").str.lower()
+
+    def _classify(name: str) -> str:
+        for kw, label in zip(_CONSTELLATION_KEYWORDS, _CONSTELLATION_LABELS):
+            if kw in name:
+                return label
+        return "Other Comms"
+
+    comms["constellation"] = name_lower.apply(_classify)
     return (
-        past.dropna(subset=["mission_type"])
-        .groupby("mission_type")
+        comms.groupby(["year", "constellation"])
         .size()
         .reset_index(name="count")
-        .sort_values("count", ascending=False)
-        .head(n)
+        .sort_values(["year", "constellation"])
     )
+
+
+def megaconstellation_headline(past: pd.DataFrame) -> tuple[int, int]:
+    """Return (mega_launches, total_comms_launches)."""
+    if past.empty:
+        return 0, 0
+    comms = past[past["mission_type"].fillna("") == "Communications"]
+    name_lower = comms["launch_name"].fillna("").str.lower()
+    mega_mask = name_lower.str.contains("|".join(_CONSTELLATION_KEYWORDS), regex=True)
+    return int(mega_mask.sum()), len(comms)
 
 
 def deep_space_missions(past: pd.DataFrame) -> pd.DataFrame:

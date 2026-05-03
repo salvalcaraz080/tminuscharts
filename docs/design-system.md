@@ -165,10 +165,9 @@ All charts go through `mc_fig(fig, height=380, *, xl="", yl="", fmt=":,", sfx=""
 - **New Space companies directory**: filterable card grid (name search + country multiselect + sector multiselect); loaded via `load_providers()` in `data.py` which LEFT JOINs all providers against launches to surface zero-launch companies; filtered to providers whose first launch ≥ 2010 (`NEW_SPACE_YEAR`) plus any yet-to-launch; 3-column HTML card grid matching dashboard visual language (logo, name, flag, sector badge, launch count or "Yet to launch")
 
 **Tab 6 – Missions**
-- Orbit distribution: donut
-- Orbit evolution: area chart by orbit category
-- Mission types: horizontal bar (top 10)
-- Deep space missions: cards with provider logo
+- **What is space for?**: stacked area chart by year × purpose category (7 categories: Connectivity, Government/Military, Earth Observation, Science & Exploration, Crewed, Resupply, Other); colours from `chart_palette()["area"]`; purpose mapping defined in `_PURPOSE_MAP` in `insights.py`; backed by `mission_purpose_by_year()`
+- **The megaconstellation effect**: stacked bar by year × constellation (Starlink / OneWeb / Amazon Kuiper / Other Comms); headline stat showing mega launches as % of all comms launches; backed by `megaconstellation_by_year()` and `megaconstellation_headline()`; filtered to `mission_type == "Communications"`, classified by keyword in `launch_name`
+- **Exploration milestones**: launch cards (`.launch-card--media`) for missions beyond Earth orbit; mission_type multiselect filter (options populated dynamically from results); backed by `deep_space_missions()` using `DEEP_SPACE_KEYWORDS` + `mission_type == "Planetary Science"`; date shown as `Wed 12 Apr 2024 · 14:30 UTC`
 
 **Tab 7 – DIY (🛠️)**
 - Fully interactive chart builder. Two sections: Main Parameters (chart type, metric, group by) and Secondary Parameters (chart-specific controls).
