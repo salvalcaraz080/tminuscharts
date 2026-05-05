@@ -736,7 +736,60 @@ def rocket_family_by_year(past: pd.DataFrame, min_total: int = 5, top_n: int = 1
 
 
 # ---------------------------------------------------------------------------
-# 14. Falcon 9 turnaround time
+# 14. Market concentration (HHI + USA / China / Rest share)
+# ---------------------------------------------------------------------------
+def market_share_by_year(past: pd.DataFrame, since: int = 2000) -> pd.DataFrame:
+    """Yearly launch share: USA / China / Rest of World (counts + percentages)."""
+    if past.empty:
+        return pd.DataFrame(columns=["year", "USA", "China", "Rest of World",
+                                     "USA_pct", "China_pct", "Rest of World_pct", "total"])
+    df = past[past["year"] >= since].copy()
+
+    def _region(country):
+        if country == "USA":
+            return "USA"
+        if country == "CHN":
+            return "China"
+        return "Rest of World"
+
+    df["region"] = df["provider_country"].apply(_region)
+    grouped = (
+        df.groupby(["year", "region"])
+        .size()
+        .unstack(fill_value=0)
+        .reset_index()
+    )
+    for col in ("USA", "China", "Rest of World"):
+        if col not in grouped.columns:
+            grouped[col] = 0
+    grouped["total"] = grouped[["USA", "China", "Rest of World"]].sum(axis=1)
+    for col in ("USA", "China", "Rest of World"):
+        grouped[f"{col}_pct"] = (grouped[col] / grouped["total"] * 100).round(1)
+    return grouped.sort_values("year").reset_index(drop=True)
+
+
+def market_hhi_by_year(past: pd.DataFrame, since: int = 2000) -> pd.DataFrame:
+    """HHI (Herfindahl-Hirschman Index) of launch market concentration by year.
+
+    HHI = sum of squared market shares × 10,000.
+    <1,500: competitive. 1,500–2,500: moderate. >2,500: highly concentrated.
+    """
+    if past.empty:
+        return pd.DataFrame(columns=["year", "hhi"])
+    df = past[past["year"] >= since].copy()
+    records = []
+    for yr, grp in df.groupby("year"):
+        total = len(grp)
+        if total < 3:
+            continue
+        shares = grp.groupby("provider_name").size() / total
+        hhi = int(round((shares ** 2).sum() * 10000))
+        records.append({"year": int(yr), "hhi": hhi})
+    return pd.DataFrame(records).sort_values("year").reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
+# 15. Falcon 9 turnaround time
 # ---------------------------------------------------------------------------
 def falcon9_turnaround(past: pd.DataFrame) -> pd.DataFrame:
     """Days between consecutive Falcon 9 launches as a reusability metric."""

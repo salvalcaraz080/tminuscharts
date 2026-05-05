@@ -7,6 +7,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- **Insights tab · Launch market concentration**: new section with two charts — stacked bar showing USA / China / Rest of World share (%) since 2000, and HHI (Herfindahl-Hirschman Index) line chart with reference lines at 1,500 (moderate) and 2,500 (highly concentrated); headline stats for latest year; backed by `market_share_by_year()` and `market_hhi_by_year()` in `insights.py`
+
 ---
 
 ## [1.3.0] — 2026-05-03

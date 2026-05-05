@@ -171,6 +171,16 @@ TRANSLATIONS = {
         "mega_other": "Otras comunicaciones",
         "megaconstellation_headline_txt": "{mega} de {comms} lanzamientos de comunicaciones ({pct}%) pertenecen a megaconstelaciones.",
         "mission_type_col": "Tipo de misión",
+        # Market concentration
+        "sec_market_concentration": "Concentración del mercado de lanzamientos",
+        "market_concentration_headline": "En {year}, EE.UU. + China controlaron el {combined_pct}% de todos los lanzamientos. El resto del mundo: {rest_pct}%.",
+        "hhi_headline": "El HHI (índice de concentración de mercado) global alcanzó {hhi:,} en {year} — por encima del umbral de 2.500 que define un mercado 'altamente concentrado'.",
+        "concentration_rest": "Resto del mundo",
+        "hhi_label": "Índice HHI (índice de concentración de mercado)",
+        "hhi_competitive": "Competitivo (<1.500)",
+        "hhi_moderate": "Concentración moderada (1.500–2.500)",
+        "hhi_concentrated": "Altamente concentrado (>2.500)",
+        "market_share_pct": "Cuota (%)",
         # Shared chart labels
         "year_col": "Año",
         "launches_col": "Lanzamientos",
@@ -348,6 +358,16 @@ TRANSLATIONS = {
         "mega_other": "Other Comms",
         "megaconstellation_headline_txt": "{mega} of {comms} communications launches ({pct}%) belong to megaconstellations.",
         "mission_type_col": "Mission type",
+        # Market concentration
+        "sec_market_concentration": "Launch Market Concentration",
+        "market_concentration_headline": "In {year}, USA + China controlled {combined_pct}% of all launches. The rest of the world: {rest_pct}%.",
+        "hhi_headline": "The global launch market HHI (Market Concentration Index) reached {hhi:,} in {year} — above the 2,500 threshold for 'highly concentrated' markets.",
+        "concentration_rest": "Rest of World",
+        "hhi_label": "HHI (Market Concentration Index)",
+        "hhi_competitive": "Competitive (<1,500)",
+        "hhi_moderate": "Moderate (1,500–2,500)",
+        "hhi_concentrated": "Highly Concentrated (>2,500)",
+        "market_share_pct": "Share (%)",
         # Shared chart labels
         "year_col": "Year",
         "launches_col": "Launches",

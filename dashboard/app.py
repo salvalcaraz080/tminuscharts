@@ -1033,6 +1033,68 @@ with tab4:
             )
             st.plotly_chart(fig, use_container_width=True)
 
+        st.divider()
+        st.markdown(f'<div class="section-label">🌍 {t("sec_market_concentration")}</div>', unsafe_allow_html=True)
+        _mc_share = insights.market_share_by_year(f_past, since=2000)
+        _mc_hhi = insights.market_hhi_by_year(f_past, since=2000)
+        if not _mc_share.empty:
+            _mc_latest = _mc_share.iloc[-1]
+            _combined_pct = round(float(_mc_latest["USA_pct"]) + float(_mc_latest["China_pct"]), 1)
+            _rest_pct = round(float(_mc_latest["Rest of World_pct"]), 1)
+            st.markdown(f"**{t('market_concentration_headline', year=int(_mc_latest['year']), combined_pct=_combined_pct, rest_pct=_rest_pct)}**")
+            if not _mc_hhi.empty:
+                _hhi_latest = _mc_hhi.iloc[-1]
+                st.markdown(f"**{t('hhi_headline', hhi=int(_hhi_latest['hhi']), year=int(_hhi_latest['year']))}**")
+
+            _ip = chart_palette(_ui_theme())
+            _ct = chart_title_widget("market_concentration_share", t)
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                x=_mc_share["year"], y=_mc_share["USA_pct"],
+                name="USA", marker_color=_ip["bar_primary"],
+                hovertemplate="%{x} — USA: %{y:.1f}%<extra></extra>",
+            ))
+            fig.add_trace(go.Bar(
+                x=_mc_share["year"], y=_mc_share["China_pct"],
+                name="China", marker_color=_ip["spacex"],
+                hovertemplate="%{x} — China: %{y:.1f}%<extra></extra>",
+            ))
+            fig.add_trace(go.Bar(
+                x=_mc_share["year"], y=_mc_share["Rest of World_pct"],
+                name=t("concentration_rest"), marker_color=_ip["bar_muted"],
+                hovertemplate="%{x} — " + t("concentration_rest") + ": %{y:.1f}%<extra></extra>",
+            ))
+            fig.update_layout(barmode="stack")
+            fig.update_traces(marker_line_width=0)
+            apply_title(fig, _ct)
+            mc_fig(fig, xl=t("year_col"), yl=t("market_share_pct"))
+            st.plotly_chart(fig, use_container_width=True)
+
+            if not _mc_hhi.empty:
+                _ct2 = chart_title_widget("market_concentration_hhi", t)
+                fig2 = go.Figure()
+                fig2.add_hline(
+                    y=2500, line_dash="dot", line_color=_ip["spacex"], opacity=0.7,
+                    annotation_text=t("hhi_concentrated"), annotation_position="top left",
+                    annotation_font_size=11,
+                )
+                fig2.add_hline(
+                    y=1500, line_dash="dot", line_color=_ip["line_accent"], opacity=0.7,
+                    annotation_text=t("hhi_moderate"), annotation_position="top left",
+                    annotation_font_size=11,
+                )
+                fig2.add_trace(go.Scatter(
+                    x=_mc_hhi["year"], y=_mc_hhi["hhi"],
+                    mode="lines+markers",
+                    line=dict(color=_ip["bar_primary"], width=2),
+                    marker=dict(size=5),
+                    name=t("hhi_label"),
+                    hovertemplate="%{x}: HHI %{y:,}<extra></extra>",
+                ))
+                apply_title(fig2, _ct2)
+                mc_fig(fig2, xl=t("year_col"), yl=t("hhi_label"))
+                st.plotly_chart(fig2, use_container_width=True)
+
 # ── NEW SPACE ─────────────────────────────────────────────────────────────────
 _COUNTRY_FLAGS = {
     "USA":"🇺🇸","CHN":"🇨🇳","RUS":"🇷🇺","IND":"🇮🇳","JPN":"🇯🇵","FRA":"🇫🇷","DEU":"🇩🇪",

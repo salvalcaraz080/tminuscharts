@@ -54,7 +54,13 @@ Generate **new analyses or charts** that:
    - Chart: 100% area + trend line
    - Status: NewSpace tab has the base chart; projection not yet added
 
-7. ✅ **"The megaconstellation effect"** *(Missions tab)*
+7. ✅ **"Market concentration: USA / China / Rest + HHI"** *(Insights tab)*
+   - Stacked bar (% share) USA / China / Rest of World since 2000
+   - HHI line chart with reference lines at 1,500 (moderate) and 2,500 (highly concentrated)
+   - Headline stats: combined USA+China share and HHI for latest year
+   - Backed by `market_share_by_year()` and `market_hhi_by_year()` in `insights.py`
+
+8. ✅ **"The megaconstellation effect"** *(Missions tab)*
    - Starlink vs OneWeb vs Amazon Kuiper vs Other Comms, launches per year
    - Chart: stacked bar; headline stat (% of comms launches belonging to megaconstellations)
    - Classification by keyword in `launch_name` (no satellite manifest parsing needed)
@@ -64,20 +70,17 @@ Generate **new analyses or charts** that:
 
 ## NEW CANDIDATES (to discuss)
 
-8. **"The busiest week in space history"**
+9. **"The busiest week in space history"**
    - Which ISO week had the most launches ever? Evolution of peak-week count by year
    - Chart: bar chart of max weekly launches per year + annotated peak
    - X angle: "Space is getting crowded fast"
 
-9. **"Launch windows by orbit type"**
+10. **"Launch windows by orbit type"**
    - Which months/quarters favour which orbit types? (LEO vs GTO vs SSO seasonality)
    - Chart: heatmap (orbit type × month, colour = avg launches)
    - X angle: "GTO launches cluster in Q4 — here's why"
 
-10. **"Provider concentration over time"**
-    - HHI (Herfindahl-Hirschman Index) of launch market concentration by year
-    - Chart: line chart of HHI score — rising = more monopolistic, falling = more competitive
-    - X angle: "The space launch market is more concentrated than ever"
+11. **"Provider concentration over time"** — ✅ Implemented as analysis #7 above
 
 ---
 
