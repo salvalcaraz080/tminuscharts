@@ -35,10 +35,12 @@ Generate **new analyses or charts** that:
    - Linear regression on last 5 complete years; backed by `launches_by_year_with_forecast()`
 
 4. ✅ **"Falcon 9 turnaround"** *(New Space tab)*
-   - Days between consecutive Falcon 9 launches as a reusability metric
-   - Three stat callouts: all-time fastest turnaround + date, avg last 12 months, avg 2015 baseline
-   - Scatter + 20-launch rolling mean below the callouts
-   - Backed by `falcon9_turnaround()` in `insights.py`
+   - Two distinct metrics shown side-by-side:
+     - **KPI (provider cadence)**: days between consecutive Falcon 9 launches (any booster); all-time fastest, avg last 12 months, avg 2015 baseline — backed by `falcon9_turnaround()` in `insights.py`
+     - **Booster reuse record**: days between consecutive relaunches of the *same* booster; record for the latest year with fallback to all-time — backed by `falcon9_booster_turnaround()` in `insights.py`
+   - Both functions return `hours` column for sub-day precision; UI shows hours when result < 1 day
+   - `booster_serial` data flows: Launch Library 2 `launcher_stage[0].launcher.serial_number` → `launches.booster_serial` (SQLite, `ALTER TABLE` migration) → `data.py` SELECT → `falcon9_booster_turnaround()`
+   - Scatter + 20-launch rolling mean below the callouts (uses `falcon9_turnaround()` data)
 
 5. ✅ **"The SpaceX / Starlink effect"** *(Insights tab)*
    - Stacked bar: Starlink / Other SpaceX / Rest of World

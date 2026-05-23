@@ -5,7 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.5.0] — 2026-05-23
+
+### Added
+- **New Space tab · Falcon 9 booster reuse record**: new headline sentence showing the fastest same-booster reuse within the latest year (fallback: all-time); backed by new `falcon9_booster_turnaround()` in `insights.py` — groups launches by `booster_serial`, diffs within each booster
+- **Data pipeline · Booster serial tracking**: `launches.booster_serial` column added via `ALTER TABLE` migration in `database.py`; extracted from `launcher_stage[0].launcher.serial_number` in the Launch Library 2 API response and persisted with COALESCE upsert logic; exposed in `data.py` SELECT query
+- **Mobile responsiveness**: KPI cards now display in a 2×2 grid on narrow screens (≤ 480 px) instead of 4 stacked rows; Plotly chart legends repositioned to the top on mobile via `inject_mobile_legend_script()` using a same-origin iframe MutationObserver + `plotly_afterplot` event listener per chart; heatmap colorbar moved to bottom on mobile; turnaround 3-metric row fits on one line on mobile via `.kpi-grid-3` custom HTML grid
+- **KPI card #3 · YoY delta inline**: the YoY percentage now appears on the same line as "in [year]" instead of on a new line
+
+### Changed
+- **New Space tab · Falcon 9 turnaround KPI**: "all-time fastest" now shows the shortest interval between any two *consecutive* Falcon 9 launches (provider cadence, any booster), using `falcon9_turnaround()`; displays hours when result is less than 1 day
+- **New Space tab · Falcon 9 booster reuse headline**: separated from the KPI — headline sentence now exclusively tracks same-booster reuse via `falcon9_booster_turnaround()`; also displays hours when result is less than 1 day
+- **New Space tab · Turnaround stat callouts**: replaced three `st.metric()` widgets with a custom HTML `.kpi-grid-3` grid for correct mobile layout
+
+---
+
+## [1.4.0] — 2026-05-05
 
 ### Added
 - **Insights tab · Launch market concentration**: new section with two charts — stacked bar showing USA / China / Rest of World share (%) since 2000, and HHI (Herfindahl-Hirschman Index) line chart with reference lines at 1,500 (moderate) and 2,500 (highly concentrated); headline stats for latest year; backed by `market_share_by_year()` and `market_hhi_by_year()` in `insights.py`

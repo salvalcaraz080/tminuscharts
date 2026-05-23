@@ -244,11 +244,39 @@ Before starting a new improvement iteration, answer:
 
 ---
 
+## MOBILE RESPONSIVENESS
+
+### KPI grid (2×2 on mobile)
+- The 4 KPI cards use a custom HTML `<div class="kpi-grid">` grid (not `st.columns`) — Streamlit column overrides are unreliable on mobile.
+- Breakpoint at `max-width: 480px`: `grid-template-columns: repeat(2, 1fr)` (2 columns instead of 4).
+- Defined in `theme.py` → `build_css()` under `.kpi-grid`.
+
+### Turnaround 3-metric row (single line on mobile)
+- Uses `.kpi-grid-3` class (always 3 columns) implemented as a custom HTML grid.
+- `@media (max-width: 480px)`: font scaling applied (`font-size: 80%`) to fit all three metrics in one line.
+- **Never use `st.columns()` + `flex-wrap: nowrap` CSS here** — Streamlit columns overflow the viewport regardless. The custom HTML grid is the robust solution.
+
+### Plotly chart legends → top on mobile
+- Plotly legends cannot be repositioned server-side without rebuilding every figure.
+- Solution: `inject_mobile_legend_script()` in `theme.py` — called once after `build_css()` in `app.py`.
+- Uses `st.components.v1.html(height=0)` (real iframe) because `st.markdown(unsafe_allow_html=True)` silently drops `<script>` tags (browser `innerHTML` restriction).
+- The script observes `window.parent.document` for new `.js-plotly-plot` elements and attaches a `plotly_afterplot` listener per element that calls `Plotly.relayout()` to move the legend to the top.
+- **Why `plotly_afterplot` per element**: Streamlit calls `Plotly.react()` on re-renders (not creating new DOM nodes), which resets layout. A one-shot `relayout` call is lost on the next filter change. The per-element event listener re-applies on every render.
+- **`busy` flag**: breaks the `relayout → plotly_afterplot → relayout` infinite loop — set to `true` before `Plotly.relayout`, cleared in the resolved promise (or after a 300 ms timeout fallback).
+- **Heatmap colorbar**: detected by `fl.coloraxis` check; repositioned to bottom (`orientation: 'h'`, `y: -0.25`) with extra bottom margin (`margin.b: 55`).
+- Breakpoint: `window.parent.innerWidth > 768` — script exits early on desktop.
+
+### Key mobile CSS gotchas
+- `st.markdown(unsafe_allow_html=True)` → innerHTML injection; browsers never execute `<script>` tags injected this way.
+- `st.components.v1.html(height=0)` → real iframe; scripts execute; `window.parent` gives same-origin access to app DOM.
+- Streamlit column system (`st.columns()`) cannot be reliably forced to maintain N columns on narrow viewports via CSS — use custom HTML grids instead.
+
+---
+
 ## PENDING / FUTURE IDEAS
 
 - [ ] Live countdown in banner (requires Streamlit ≥ 1.37 with `@st.fragment`)
 - [ ] Rocket image in banner on wide screens (logic already prepared: `rocket_image_url` available in DataFrame, CSS media query `min-width: 1100px`)
-- [ ] Responsive / mobile
 - [ ] Explicit PNG/SVG download button per chart (currently via native Plotly button)
 - [ ] Light version of charts for article embeds (white background, adapted colours)
 - [ ] Refine "selected" state of radio buttons in light theme (primary blue ring is currently overridden to grey by the CSS override)

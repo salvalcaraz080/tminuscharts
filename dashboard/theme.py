@@ -409,6 +409,7 @@ p,span,div,li{{font-family:'Barlow Condensed',sans-serif;color:{c["tx"]};}}
 .countdown-chunk{{color:{c["am"]}!important;}}
 .countdown-when{{font-family:'Share Tech Mono',monospace;font-size:13px;color:{c["tx2"]};margin-top:3px;}}
 .kpi-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:{c["sb2"]};border-top:1px solid {c["sb2"]};border-bottom:1px solid {c["sb2"]};margin:0 0 20px 0;}}
+.kpi-grid-3{{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:{c["sb2"]};border-top:1px solid {c["sb2"]};border-bottom:1px solid {c["sb2"]};margin:0 0 20px 0;}}
 .kpi-cell{{background:{c["kt"]};padding:12px 14px;position:relative;overflow:hidden;}}
 .kpi-cell::before{{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,{c["ac"]}33,transparent);}}
 .kpi-label{{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;color:{c["kl"]};text-transform:uppercase;margin-bottom:5px;}}
@@ -473,10 +474,75 @@ button[data-testid="stExpandSidebarButton"]{{opacity:1!important;}}
 .launch-card--media .mission{{margin-bottom:6px;}}
 @media(max-width:900px){{.kpi-grid{{grid-template-columns:repeat(2,1fr);}}}}
 @media(max-width:640px){{.mc-banner{{flex-direction:column;align-items:stretch;}}.banner-countdown{{align-items:flex-start;text-align:left;}}.countdown-chunks{{justify-content:flex-start;}}}}
-@media(max-width:480px){{.kpi-grid{{grid-template-columns:1fr;}}}}
+@media(max-width:480px){{.kpi-grid{{grid-template-columns:repeat(2,1fr);}}}}
 @media(max-width:768px){{
 [data-testid="stPlotlyChart"]{{overflow-x:auto!important;max-width:100%;-webkit-overflow-scrolling:touch;}}
 [data-testid="stPlotlyChart"] .js-plotly-plot{{min-width:620px!important;}}
+.kpi-grid-3 .kpi-value{{font-size:clamp(11px,3.5vw,16px)!important;}}
+.kpi-grid-3 .kpi-label{{font-size:9px!important;letter-spacing:.05em!important;}}
+.kpi-grid-3 .kpi-sub{{font-size:9px!important;}}
 }}
 {light_main}
 </style>"""
+
+
+def inject_mobile_legend_script() -> None:
+    """Inject JS that moves Plotly legends to the top on mobile.
+
+    Must use st.components.v1.html() — st.markdown scripts are silently
+    dropped by the browser because innerHTML does not execute script tags.
+    The iframe is same-origin so window.parent gives access to the app DOM.
+    """
+    import streamlit.components.v1 as components
+    components.html("""<script>
+(function(){
+  var p = window.parent;
+  if(!p || p.innerWidth > 768) return;
+  if(p._mcLegDone) return;
+  p._mcLegDone = true;
+  function watch(el){
+    if(el.getAttribute('data-mc-leg')) return;
+    el.setAttribute('data-mc-leg','1');
+    var busy = false;
+    function apply(){
+      if(!p.Plotly || busy) return;
+      busy = true;
+      var fl = el._fullLayout || {};
+      var hasTitle = !!(fl.title && fl.title.text);
+      var update = {
+        'legend.orientation':'h','legend.x':0,'legend.xanchor':'left',
+        'legend.y':1.02,'legend.yanchor':'bottom',
+        'legend.font.size':10,
+        'margin.l':0,'margin.r':0,
+        'margin.t': hasTitle ? 96 : 72
+      };
+      if(fl.coloraxis){
+        update['coloraxis.colorbar.orientation'] = 'h';
+        update['coloraxis.colorbar.x'] = 0.5;
+        update['coloraxis.colorbar.xanchor'] = 'center';
+        update['coloraxis.colorbar.y'] = -0.25;
+        update['coloraxis.colorbar.yanchor'] = 'top';
+        update['coloraxis.colorbar.len'] = 0.9;
+        update['coloraxis.colorbar.thickness'] = 10;
+        update['margin.b'] = 55;
+      }
+      var res = p.Plotly.relayout(el, update);
+      if(res && res.then) res.then(function(){ busy=false; });
+      else setTimeout(function(){ busy=false; }, 300);
+    }
+    function setup(immediate){
+      el.addEventListener('plotly_afterplot', apply);
+      if(immediate) apply();
+    }
+    if(el.querySelector('.main-svg') && p.Plotly){ setup(true); return; }
+    var inner = new MutationObserver(function(_,obs){
+      if(el.querySelector('.main-svg') && p.Plotly){ obs.disconnect(); setup(false); }
+    });
+    inner.observe(el, {childList:true, subtree:true});
+  }
+  new MutationObserver(function(){
+    p.document.querySelectorAll('.js-plotly-plot:not([data-mc-leg])').forEach(watch);
+  }).observe(p.document.documentElement, {childList:true, subtree:true});
+  p.document.querySelectorAll('.js-plotly-plot:not([data-mc-leg])').forEach(watch);
+})();
+</script>""", height=0)

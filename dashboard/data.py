@@ -26,6 +26,7 @@ def load_launches() -> pd.DataFrame:
             l.net, l.window_start, l.window_end,
             l.mission_name, l.mission_type, l.mission_orbit, l.mission_description,
             l.image_url AS launch_image_url,
+            l.booster_serial,
             r.name     AS rocket_name,
             r.family   AS rocket_family,
             r.full_name AS rocket_fullname,

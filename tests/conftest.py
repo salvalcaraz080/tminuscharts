@@ -108,6 +108,7 @@ def mem_conn():
             provider_id INTEGER REFERENCES launch_service_providers(id),
             pad_id INTEGER REFERENCES pads(id),
             image_url TEXT,
+            booster_serial TEXT,
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
     """)

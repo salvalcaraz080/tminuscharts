@@ -3,6 +3,7 @@ import pytest
 from insights import (
     _classify_sector,
     deep_space_missions,
+    falcon9_booster_turnaround,
     falcon9_turnaround,
     launches_by_category,
     launches_by_year_with_forecast,
@@ -439,7 +440,7 @@ class TestRocketFamilyByYear:
 class TestFalcon9Turnaround:
     def test_empty_returns_expected_columns(self):
         result = falcon9_turnaround(pd.DataFrame())
-        assert list(result.columns) == ["net", "days", "launch_name"]
+        assert list(result.columns) == ["net", "days", "hours", "launch_name"]
 
     def test_single_launch_returns_empty(self):
         df = pd.DataFrame({
@@ -465,6 +466,92 @@ class TestFalcon9Turnaround:
     def test_sorted_by_net(self, sample_past):
         result = falcon9_turnaround(sample_past)
         assert list(result["net"]) == sorted(result["net"])
+
+
+# ---------------------------------------------------------------------------
+# 13b. Falcon 9 booster turnaround
+# ---------------------------------------------------------------------------
+
+class TestFalcon9BoosterTurnaround:
+    def test_empty_returns_expected_columns(self):
+        result = falcon9_booster_turnaround(pd.DataFrame())
+        assert list(result.columns) == ["net", "days", "hours", "booster_serial", "launch_name"]
+
+    def test_no_booster_serial_column_returns_empty(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9", "Falcon 9"],
+            "net": pd.to_datetime(["2023-01-01", "2023-01-10"], utc=True),
+            "launch_name": ["A", "B"],
+        })
+        result = falcon9_booster_turnaround(df)
+        assert list(result.columns) == ["net", "days", "hours", "booster_serial", "launch_name"]
+        assert result.empty
+
+    def test_single_booster_launch_returns_empty(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9"],
+            "net": pd.to_datetime(["2023-01-01"], utc=True),
+            "launch_name": ["Starlink 1"],
+            "booster_serial": ["B1060"],
+        })
+        assert falcon9_booster_turnaround(df).empty
+
+    def test_two_launches_same_booster_produces_one_row(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9", "Falcon 9"],
+            "net": pd.to_datetime(["2023-01-01", "2023-01-10"], utc=True),
+            "launch_name": ["Mission A", "Mission B"],
+            "booster_serial": ["B1060", "B1060"],
+        })
+        result = falcon9_booster_turnaround(df)
+        assert len(result) == 1
+        assert result.iloc[0]["days"] == 9.0
+
+    def test_different_boosters_computed_independently(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9"] * 4,
+            "net": pd.to_datetime(
+                ["2023-01-01", "2023-01-05", "2023-01-10", "2023-01-20"], utc=True
+            ),
+            "launch_name": ["A", "B", "C", "D"],
+            "booster_serial": ["B1060", "B1061", "B1060", "B1061"],
+        })
+        result = falcon9_booster_turnaround(df)
+        assert len(result) == 2
+        b1060_row = result[result["booster_serial"] == "B1060"].iloc[0]
+        b1061_row = result[result["booster_serial"] == "B1061"].iloc[0]
+        assert b1060_row["days"] == 9.0   # Jan 1 → Jan 10
+        assert b1061_row["days"] == 15.0  # Jan 5 → Jan 20
+
+    def test_non_falcon9_ignored(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Electron", "Electron"],
+            "net": pd.to_datetime(["2023-01-01", "2023-01-10"], utc=True),
+            "launch_name": ["A", "B"],
+            "booster_serial": ["E001", "E001"],
+        })
+        assert falcon9_booster_turnaround(df).empty
+
+    def test_null_booster_serial_excluded(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9", "Falcon 9"],
+            "net": pd.to_datetime(["2023-01-01", "2023-01-10"], utc=True),
+            "launch_name": ["A", "B"],
+            "booster_serial": [None, None],
+        })
+        assert falcon9_booster_turnaround(df).empty
+
+    def test_sub_day_turnaround_has_nonzero_hours(self):
+        df = pd.DataFrame({
+            "rocket_name": ["Falcon 9", "Falcon 9"],
+            "net": pd.to_datetime(["2023-01-01 00:00:00", "2023-01-01 08:00:00"], utc=True),
+            "launch_name": ["Morning", "Evening"],
+            "booster_serial": ["B1060", "B1060"],
+        })
+        result = falcon9_booster_turnaround(df)
+        assert len(result) == 1
+        assert result.iloc[0]["days"] == 0.3   # 8h / 24 ≈ 0.333 → round(1) = 0.3
+        assert result.iloc[0]["hours"] == 8
 
 
 # ---------------------------------------------------------------------------

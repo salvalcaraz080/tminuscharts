@@ -50,7 +50,7 @@ docs/
 - **`database.py`** — all schema changes go in `init_db()` as `ALTER TABLE` migrations.
 - Upserts use `COALESCE` to preserve existing non-null values (logo URLs, images).
 - UTC everywhere for datetimes.
-- When replacing or deleting existing features, check dependent variables and functions — delete if necessary to avoid orphaned code.
+- When replacing or deleting existing features, or iterating over the same feature, check and delete orphaned code.
 
 ---
 
@@ -86,3 +86,37 @@ python src/ingest.py
 - Do not rewrite `app.py` wholesale — use targeted edits.
 - Do not add schema columns without a migration in `init_db()`.
 - Do not push without running `python -m pytest` first.
+
+---
+
+## End-of-Session Checklist (Before Committing)
+
+Run through this checklist at the end of every working session, before staging any commit.
+
+### Code quality
+- Run the full test suite and confirm everything passes.
+- Don't left orhpaned code behind, specially after multiple iterations.
+- Run linters/formatters and resolve warnings introduced in this session.
+- Remove debug prints, commented-out code, and exploratory scaffolding.
+- Check that no secrets, credentials, or local-only paths leaked into the diff.
+
+### Tests
+- Assess whether new unit tests are needed for the logic added or changed.
+- Update existing tests whose expected behaviour has shifted.
+- For non-trivial features, consider an integration test, not just unit coverage.
+
+### Documentation
+- Determine whether the following key files need updating:
+  - `docs/design-system.md` — for architectural or structural changes.
+  - `docs/analyses.md` — for new analyses, metrics, or data-model changes.
+  - `README.md` — for setup, usage, or user-facing changes.
+- Add or update docstrings for new public functions, classes, or modules.
+
+### Changelog
+- Add a new entry to `CHANGELOG.md` under the appropriate section (Added / Changed / Fixed / Removed / Deprecated).
+- Flag breaking changes explicitly.
+
+### Final review
+- Review the full `git diff` before staging; stage hunks intentionally rather than `git add .`.
+- Group unrelated changes into separate commits when reasonable.
+- Write a commit message that describes the *why*, not just the *what*.

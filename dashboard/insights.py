@@ -792,17 +792,44 @@ def market_hhi_by_year(past: pd.DataFrame, since: int = 2000) -> pd.DataFrame:
 # 15. Falcon 9 turnaround time
 # ---------------------------------------------------------------------------
 def falcon9_turnaround(past: pd.DataFrame) -> pd.DataFrame:
-    """Days between consecutive Falcon 9 launches as a reusability metric."""
+    """Days between consecutive Falcon 9 launches (any booster) — provider cadence metric."""
     if past.empty:
-        return pd.DataFrame(columns=["net", "days", "launch_name"])
+        return pd.DataFrame(columns=["net", "days", "hours", "launch_name"])
 
     f9 = (
         past[past["rocket_name"].fillna("").str.contains("Falcon 9", case=False)]
         .copy().sort_values("net").reset_index(drop=True)
     )
     if len(f9) < 2:
-        return pd.DataFrame(columns=["net", "days", "launch_name"])
+        return pd.DataFrame(columns=["net", "days", "hours", "launch_name"])
 
-    f9["days"] = (f9["net"].diff().dt.total_seconds() / 86400).round(1)
-    return f9[["net", "days", "launch_name"]].dropna(subset=["days"]).reset_index(drop=True)
+    _secs = f9["net"].diff().dt.total_seconds()
+    f9["days"]  = (_secs / 86400).round(1)
+    f9["hours"] = (_secs / 3600).round(0).astype("Int64")
+    return f9[["net", "days", "hours", "launch_name"]].dropna(subset=["days"]).reset_index(drop=True)
+
+
+def falcon9_booster_turnaround(past: pd.DataFrame) -> pd.DataFrame:
+    """Days between consecutive relaunches of the same Falcon 9 booster."""
+    if past.empty or "booster_serial" not in past.columns:
+        return pd.DataFrame(columns=["net", "days", "hours", "booster_serial", "launch_name"])
+
+    f9 = (
+        past[
+            past["rocket_name"].fillna("").str.contains("Falcon 9", case=False)
+            & past["booster_serial"].notna()
+        ]
+        .copy().sort_values(["booster_serial", "net"]).reset_index(drop=True)
+    )
+    if f9.empty:
+        return pd.DataFrame(columns=["net", "days", "hours", "booster_serial", "launch_name"])
+
+    _secs = f9.groupby("booster_serial")["net"].diff().dt.total_seconds()
+    f9["days"]  = (_secs / 86400).round(1)
+    f9["hours"] = (_secs / 3600).round(0).astype("Int64")
+    return (
+        f9[["net", "days", "hours", "booster_serial", "launch_name"]]
+        .dropna(subset=["days"])
+        .reset_index(drop=True)
+    )
 

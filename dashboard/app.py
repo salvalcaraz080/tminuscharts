@@ -18,7 +18,7 @@ import streamlit as st
 from data import load_launches, load_providers, split_past_upcoming, success_rate
 from i18n import make_t
 import insights
-from theme import THEMES, build_css, chart_palette, geo_layout, heatmap_cell_color, heatmap_cell_path, heatmap_colorscale, orbit_node_colors, plotly_layout, region_color_map, title_color, trace_label_color
+from theme import THEMES, build_css, inject_mobile_legend_script, chart_palette, geo_layout, heatmap_cell_color, heatmap_cell_path, heatmap_colorscale, orbit_node_colors, plotly_layout, region_color_map, title_color, trace_label_color
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -189,6 +189,7 @@ with st.sidebar:
     )
 
 st.markdown(build_css(_ui_theme()), unsafe_allow_html=True)
+inject_mobile_legend_script()
 
 if _LOGO_SRC:
     st.markdown(
@@ -389,7 +390,7 @@ if ov_stats and ov_stats.get("yoy_delta_pct") is not None:
     _d = ov_stats["yoy_delta_pct"]
     _yoy_color = THEMES[_ui_theme()]["ok"] if _d >= 0 else THEMES[_ui_theme()]["am"]
     _yoy_arrow = "▲" if _d >= 0 else "▼"
-    _yoy_html = f'<div class="kpi-sub"><span style="color:{_yoy_color}">{_yoy_arrow} {abs(_d):.0f}% vs {ov_stats["last_year"]}</span></div>'
+    _yoy_html = f' <span style="color:{_yoy_color}">{_yoy_arrow} {abs(_d):.0f}% vs {ov_stats["last_year"]}</span>'
 
 st.markdown(f"""
 <div class="kpi-grid">
@@ -408,8 +409,7 @@ st.markdown(f"""
     <div class="kpi-cell">
         <div class="kpi-label">{t('this_year')}</div>
         <div class="kpi-value kv-accent">{this_year_count:,}</div>
-        <div class="kpi-sub">{t('kpi_sub_this_year', year=_cur_year)}</div>
-        {_yoy_html}
+        <div class="kpi-sub">{t('kpi_sub_this_year', year=_cur_year)}{_yoy_html}</div>
         <div class="kpi-corner"></div>
     </div>
     <div class="kpi-cell">
@@ -1149,32 +1149,64 @@ with tab5:
         # ── REUSABILITY REVOLUTION ────────────────────────────────────────────
         st.divider()
         st.markdown(f'<div class="section-label">🔄 {t("sec_turnaround")}</div>', unsafe_allow_html=True)
-        _turn_df = insights.falcon9_turnaround(f_past)
+        _turn_df        = insights.falcon9_turnaround(f_past)
+        _booster_df     = insights.falcon9_booster_turnaround(f_past)
+
+        def _fmt_turnaround(days_raw: float, hours_val: int, days_sfx: str) -> str:
+            return f"{hours_val}h" if days_raw < 1 else f"{int(days_raw)} {days_sfx}"
+
         if not _turn_df.empty:
             _turn_latest_year = int(_turn_df["net"].dt.year.max())
-            _turn_latest = _turn_df[_turn_df["net"].dt.year == _turn_latest_year]
-            _min_days = int(_turn_latest["days"].min()) if not _turn_latest.empty else int(_turn_df["days"].min())
             _total_f9 = len(_turn_df) + 1
-            st.markdown(f"**{t('turnaround_headline', year=_turn_latest_year, min_days=_min_days, total=_total_f9)}**")
 
-            _fastest_days = int(_turn_df["days"].min())
-            _fastest_date = _turn_df.loc[_turn_df["days"].idxmin(), "net"].strftime("%b %Y")
+            # Headline: fastest same-booster reuse in the latest year
+            if not _booster_df.empty:
+                _b_latest = _booster_df[_booster_df["net"].dt.year == _turn_latest_year]
+                _b_src = _b_latest if not _b_latest.empty else _booster_df
+                _b_idx = _b_src["days"].idxmin()
+                _min_val = _fmt_turnaround(
+                    _b_src.at[_b_idx, "days"], int(_b_src.at[_b_idx, "hours"]), t("days_suffix")
+                )
+            else:
+                _min_val = "—"
+            st.markdown(f"**{t('turnaround_headline', year=_turn_latest_year, min_val=_min_val, total=_total_f9)}**")
+
+            # KPI: all-time fastest consecutive F9 launches (any booster)
+            _f_idx   = _turn_df["days"].idxmin()
+            _fastest_date = _turn_df.at[_f_idx, "net"].strftime("%b %Y")
+            _fastest_val  = _fmt_turnaround(
+                _turn_df.at[_f_idx, "days"], int(_turn_df.at[_f_idx, "hours"]), t("days_suffix")
+            )
             _12m_ago = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=365)
             _recent_t = _turn_df[_turn_df["net"] >= _12m_ago]
             _recent_avg = round(float(_recent_t["days"].mean()), 1) if not _recent_t.empty else None
             _base_t = _turn_df[_turn_df["net"].dt.year == 2015]
             _base_avg = round(float(_base_t["days"].mean()), 1) if not _base_t.empty else None
 
-            _tcol1, _tcol2, _tcol3 = st.columns(3)
-            with _tcol1:
-                st.metric(t("turnaround_fastest"), f"{_fastest_days} {t('days_suffix')}", delta=_fastest_date, delta_color="off")
-            with _tcol2:
-                if _recent_avg is not None:
-                    _delta_vs_base = f"vs {_base_avg}{t('days_suffix')} in 2015" if _base_avg else None
-                    st.metric(t("turnaround_recent_avg"), f"{_recent_avg} {t('days_suffix')}", delta=_delta_vs_base, delta_color="inverse")
-            with _tcol3:
-                if _base_avg is not None:
-                    st.metric(t("turnaround_baseline"), f"{_base_avg} {t('days_suffix')}")
+            _r2_val = f"{_recent_avg} {t('days_suffix')}" if _recent_avg is not None else "—"
+            _r2_sub = (f'<div class="kpi-sub">vs {_base_avg}{t("days_suffix")} · 2015</div>'
+                       if _recent_avg is not None and _base_avg is not None else "")
+            _r3_val = f"{_base_avg} {t('days_suffix')}" if _base_avg is not None else "—"
+            st.markdown(f"""
+<div class="kpi-grid-3">
+  <div class="kpi-cell">
+    <div class="kpi-label">{t('turnaround_fastest')}</div>
+    <div class="kpi-value">{_fastest_val}</div>
+    <div class="kpi-sub">{_fastest_date}</div>
+    <div class="kpi-corner"></div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-label">{t('turnaround_recent_avg')}</div>
+    <div class="kpi-value kv-accent">{_r2_val}</div>
+    {_r2_sub}
+    <div class="kpi-corner"></div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-label">{t('turnaround_baseline')}</div>
+    <div class="kpi-value">{_r3_val}</div>
+    <div class="kpi-corner"></div>
+  </div>
+</div>""", unsafe_allow_html=True)
 
             _ip = chart_palette(_ui_theme())
             _ct = chart_title_widget("sec_turnaround", t)

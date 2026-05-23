@@ -98,6 +98,8 @@ def init_db() -> None:
         conn.execute("ALTER TABLE launch_service_providers ADD COLUMN image_url TEXT")
     if not _has_column("rockets", "image_url"):
         conn.execute("ALTER TABLE rockets ADD COLUMN image_url TEXT")
+    if not _has_column("launches", "booster_serial"):
+        conn.execute("ALTER TABLE launches ADD COLUMN booster_serial TEXT")
 
     conn.commit()
     conn.close()
@@ -187,6 +189,8 @@ def upsert_launch(conn: sqlite3.Connection, launch: dict) -> None:
     """Insert or update a launch record, including related entities."""
     rocket = launch.get("rocket") or {}
     rocket_config = rocket.get("configuration") or {}
+    launcher_stages = rocket.get("launcher_stage") or []
+    booster_serial = (launcher_stages[0].get("launcher") or {}).get("serial_number") if launcher_stages else None
     provider = launch.get("launch_service_provider") or {}
     pad = launch.get("pad") or {}
     mission = launch.get("mission") or {}
@@ -202,12 +206,12 @@ def upsert_launch(conn: sqlite3.Connection, launch: dict) -> None:
             id, name, slug, status_id, status_name,
             net, window_start, window_end,
             mission_name, mission_type, mission_orbit, mission_description,
-            rocket_id, provider_id, pad_id, image_url
+            rocket_id, provider_id, pad_id, image_url, booster_serial
         ) VALUES (
             :id, :name, :slug, :status_id, :status_name,
             :net, :window_start, :window_end,
             :mission_name, :mission_type, :mission_orbit, :mission_description,
-            :rocket_id, :provider_id, :pad_id, :image_url
+            :rocket_id, :provider_id, :pad_id, :image_url, :booster_serial
         )
         ON CONFLICT(id) DO UPDATE SET
             name=excluded.name, slug=excluded.slug,
@@ -219,6 +223,7 @@ def upsert_launch(conn: sqlite3.Connection, launch: dict) -> None:
             mission_description=excluded.mission_description,
             rocket_id=excluded.rocket_id, provider_id=excluded.provider_id,
             pad_id=excluded.pad_id, image_url=excluded.image_url,
+            booster_serial=COALESCE(excluded.booster_serial, launches.booster_serial),
             updated_at=datetime('now')
         """,
         {
@@ -238,5 +243,6 @@ def upsert_launch(conn: sqlite3.Connection, launch: dict) -> None:
             "provider_id": provider_id,
             "pad_id": pad_id,
             "image_url": launch.get("image"),
+            "booster_serial": booster_serial,
         },
     )
